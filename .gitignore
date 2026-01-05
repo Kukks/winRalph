@@ -1,0 +1,12 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# Session state (local only)
+ralph-state-*.json
+ralph-log-*.txt
