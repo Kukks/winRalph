@@ -38,7 +38,7 @@ winRalph lets Claude Code run autonomously in a loop until a task is complete. I
 
 ```powershell
 # Clone the repo
-git clone https://github.com/YourUsername/winRalph.git
+git clone https://github.com/Kukks/winRalph.git
 cd winRalph
 
 # Run the installer
