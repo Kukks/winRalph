@@ -15,7 +15,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "status", "log", "clear", "list", "help")]
+    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "help")]
     [string]$Command = "help",
 
     [Parameter(Position=1)]
@@ -264,6 +264,48 @@ switch ($Command) {
         Write-Host "Ralph state and logs cleared for session $SessionId" -ForegroundColor Green
     }
 
+    "update" {
+        Show-Banner
+        Write-Host "Updating winRalph..." -ForegroundColor Cyan
+        Write-Host ""
+
+        $BaseUrl = "https://raw.githubusercontent.com/Kukks/winRalph/master"
+        $HooksDir = "$env:USERPROFILE\.claude\hooks"
+        $CommandsDir = "$env:USERPROFILE\.claude\commands"
+
+        # Update hook files
+        Write-Host "Downloading hook files..." -ForegroundColor Cyan
+        $hookFiles = @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd")
+        foreach ($file in $hookFiles) {
+            $url = "$BaseUrl/hooks/$file"
+            $dst = "$HooksDir\$file"
+            try {
+                Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
+                Write-Host "  Updated $file" -ForegroundColor Green
+            } catch {
+                Write-Host "  Failed to update $file" -ForegroundColor Red
+            }
+        }
+
+        # Update command files
+        Write-Host "Downloading command files..." -ForegroundColor Cyan
+        $cmdFiles = @("ralph.md")
+        foreach ($file in $cmdFiles) {
+            $url = "$BaseUrl/commands/$file"
+            $dst = "$CommandsDir\$file"
+            try {
+                Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
+                Write-Host "  Updated $file" -ForegroundColor Green
+            } catch {
+                Write-Host "  Failed to update $file" -ForegroundColor Red
+            }
+        }
+
+        Write-Host ""
+        Write-Host "Update complete!" -ForegroundColor Green
+        Write-Host "Restart Claude Code to use the new version." -ForegroundColor Yellow
+    }
+
     "help" {
         Show-Banner
 
@@ -276,6 +318,7 @@ switch ($Command) {
         Write-Host "  ralph list                        List all sessions"
         Write-Host "  ralph log                         View the log"
         Write-Host "  ralph clear                       Clear state and logs"
+        Write-Host "  ralph update                      Update to latest version"
         Write-Host ""
         Write-Host "Concurrent Sessions:" -ForegroundColor Cyan
         Write-Host "  By default, each directory gets its own session."

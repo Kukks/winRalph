@@ -34,7 +34,15 @@ winRalph lets Claude Code run autonomously in a loop until a task is complete. I
 
 ## Installation
 
-### Quick Install (Recommended)
+### One-Liner Install (Recommended)
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/Kukks/winRalph/master/install-remote.ps1 | iex
+```
+
+That's it! No cloning, no local files left behind.
+
+### From Source
 
 ```powershell
 # Clone the repo
@@ -107,6 +115,9 @@ ralph log
 
 # Stop the loop
 ralph stop
+
+# Update to latest version
+ralph update
 ```
 
 ### From Inside Claude Code (Slash Command)
@@ -229,6 +240,28 @@ $env:TEMP\ralph-sessions\
 - Each directory has its own session by default
 - Use `ralph list` to see all sessions
 - Use `-Session name` for explicit control
+
+## Update & Uninstall
+
+### Update
+
+```powershell
+# From command line
+ralph update
+
+# Or re-run one-liner
+iwr -useb https://raw.githubusercontent.com/Kukks/winRalph/master/install-remote.ps1 | iex
+```
+
+### Uninstall
+
+```powershell
+# One-liner uninstall
+iwr -useb https://raw.githubusercontent.com/Kukks/winRalph/master/uninstall-remote.ps1 | iex
+
+# Or if installed from source
+.\install.ps1 -Uninstall
+```
 
 ## Credits
 
