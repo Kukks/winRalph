@@ -86,8 +86,12 @@ function Test-CompletionPhrase($transcript) {
 # Main logic
 $state = Get-RalphState
 
-# Auto-start smart mode if enabled (via env var OR state file) and no active session
-if (-not $state.active -and ($env:RALPH_SMART_MODE -eq "true" -or $state.smartMode)) {
+# Check smart mode flag file
+$smartFlagFile = "$StateDir\smart-mode-active"
+$smartModeActive = (Test-Path $smartFlagFile) -or ($env:RALPH_SMART_MODE -eq "true")
+
+# Auto-start smart mode if enabled and no active session
+if (-not $state.active -and $smartModeActive) {
     $state = @{
         active = $true
         iterations = 0
@@ -153,7 +157,7 @@ Write-RalphLog "Iteration $($state.iterations) of $MaxIterations - continuing lo
 $feedbackMessage = "Continue working. Iteration $($state.iterations) of $MaxIterations. Say 'TASK_COMPLETE' when finished."
 
 # Add thorough analysis instructions for smart mode
-if ($state.smartMode -or $env:RALPH_SMART_MODE -eq "true") {
+if ($smartModeActive) {
     $feedbackMessage = @"
 Continue working. Iteration $($state.iterations) of $MaxIterations.
 

@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.2.3"
+$Version = "1.3.0"
 
 # Session management
 function Get-SessionId {
@@ -79,19 +79,18 @@ function Get-AllSessions {
             $sid = $_.Name -replace "ralph-state-", "" -replace ".json", ""
             try {
                 $state = Get-Content $_.FullName -Raw | ConvertFrom-Json
-                # Skip smart-mode-only sessions that never had an active loop
-                if (-not $state.active -and -not $state.prompt -and $state.smartMode) {
-                    return  # Skip this one
+                # Skip sessions with no prompt (never had a real task)
+                if (-not $state.prompt) {
+                    return
                 }
                 $sessions += [PSCustomObject]@{
                     SessionId = $sid
                     Active = $state.active
                     Iterations = $state.iterations
                     MaxIterations = $state.maxIterations
-                    Prompt = if ($state.prompt -and $state.prompt.Length -gt 40) { $state.prompt.Substring(0, 40) + "..." } else { $state.prompt }
+                    Prompt = if ($state.prompt.Length -gt 40) { $state.prompt.Substring(0, 40) + "..." } else { $state.prompt }
                     Directory = $state.cwd
                     StartTime = $state.startTime
-                    SmartMode = $state.smartMode
                 }
             } catch {}
         }
@@ -431,9 +430,8 @@ switch ($Command) {
 
     "smart" {
         $currentValue = [Environment]::GetEnvironmentVariable("RALPH_SMART_MODE", "User")
-        $sessionValue = $env:RALPH_SMART_MODE
-        $state = Get-RalphState
-        $stateSmartMode = if ($state -and $state.smartMode) { $true } else { $false }
+        $smartFlagFile = "$StateDir\smart-mode-active"
+        $flagActive = Test-Path $smartFlagFile
 
         if (-not $Prompt) {
             # Show current status
@@ -446,10 +444,8 @@ switch ($Command) {
             Write-Host "  Permanent (User env): " -NoNewline
             Write-Host $permStatus -ForegroundColor $permColor
 
-            # Effective status considers both env var and state file
-            $effectiveActive = ($sessionValue -eq "true") -or $stateSmartMode
-            $effStatus = if ($effectiveActive) { "ACTIVE" } else { "inactive" }
-            $effColor = if ($effectiveActive) { "Green" } else { "Gray" }
+            $effStatus = if ($flagActive -or $env:RALPH_SMART_MODE -eq "true") { "ACTIVE" } else { "inactive" }
+            $effColor = if ($flagActive -or $env:RALPH_SMART_MODE -eq "true") { "Green" } else { "Gray" }
             Write-Host "  This session:         " -NoNewline
             Write-Host $effStatus -ForegroundColor $effColor
 
@@ -461,60 +457,23 @@ switch ($Command) {
         }
         elseif ($Prompt -eq "on") {
             [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", "true", "User")
-            $env:RALPH_SMART_MODE = "true"
-            # Also update current session state file so it takes effect immediately
-            $state = Get-RalphState
-            if ($state) {
-                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $true -Force
-            } else {
-                $state = @{
-                    active = $false
-                    iterations = 0
-                    maxIterations = $MaxIterations
-                    prompt = ""
-                    startTime = $null
-                    cwd = (Get-Location).Path
-                    sessionId = $SessionId
-                    smartMode = $true
-                }
-            }
-            $state | ConvertTo-Json | Set-Content $StateFile -Force
+            # Create flag file for immediate activation
+            "enabled" | Set-Content $smartFlagFile -Force
             Write-Host "Smart mode ENABLED permanently" -ForegroundColor Green
             Write-Host "Also activated for current session." -ForegroundColor Gray
         }
         elseif ($Prompt -eq "off") {
             [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", $null, "User")
-            $env:RALPH_SMART_MODE = $null
-            # Also update current session state file
-            $state = Get-RalphState
-            if ($state) {
-                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $false -Force
-                $state | ConvertTo-Json | Set-Content $StateFile -Force
-            }
+            # Remove flag file
+            if (Test-Path $smartFlagFile) { Remove-Item $smartFlagFile -Force }
             Write-Host "Smart mode DISABLED" -ForegroundColor Yellow
             Write-Host "Use 'ralph start' to manually start loops." -ForegroundColor Gray
         }
         elseif ($Prompt -eq "session") {
-            $env:RALPH_SMART_MODE = "true"
-            # Update session state file so it takes effect immediately
-            $state = Get-RalphState
-            if ($state) {
-                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $true -Force
-            } else {
-                $state = @{
-                    active = $false
-                    iterations = 0
-                    maxIterations = $MaxIterations
-                    prompt = ""
-                    startTime = $null
-                    cwd = (Get-Location).Path
-                    sessionId = $SessionId
-                    smartMode = $true
-                }
-            }
-            $state | ConvertTo-Json | Set-Content $StateFile -Force
+            # Create flag file for this session only (doesn't set permanent env var)
+            "enabled" | Set-Content $smartFlagFile -Force
             Write-Host "Smart mode ENABLED for this session" -ForegroundColor Green
-            Write-Host "Will reset when terminal closes." -ForegroundColor Gray
+            Write-Host "Run 'ralph smart off' to disable." -ForegroundColor Gray
         }
         else {
             Write-Host "Unknown option: $Prompt" -ForegroundColor Red
