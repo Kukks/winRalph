@@ -74,20 +74,18 @@ Be specific about what needs to be done and always include the thorough analysis
 
 ## Smart Mode (Session Toggle)
 
-For `/ralph smart on` or `/ralph smart off` within Claude Code, this toggles smart mode for the **current session only** by modifying the session state file.
+Smart mode uses a flag file (`smart-mode-active`) for immediate activation.
 
 **For `/ralph smart on`:**
-1. Get or create the session state file
-2. Set `smartMode: true` in the state
-3. Tell user: "Smart mode enabled for this session. I'll approach all tasks with thorough analysis."
+1. Run `ralph smart session` to create the flag file
+2. Tell user: "Smart mode enabled for this session. I'll approach all tasks with thorough analysis."
 
 **For `/ralph smart off`:**
-1. Get the session state file
-2. Set `smartMode: false` in the state
-3. Tell user: "Smart mode disabled for this session."
+1. Run `ralph smart off` to remove the flag file
+2. Tell user: "Smart mode disabled for this session."
 
 **For `/ralph smart`** (no argument):
-1. Check current session state
+1. Run `ralph smart` to check status
 2. Report whether smart mode is enabled or disabled
 
 When smart mode is ON for this session, you (Claude) should:
