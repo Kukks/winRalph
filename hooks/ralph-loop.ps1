@@ -86,6 +86,23 @@ function Test-CompletionPhrase($transcript) {
 # Main logic
 $state = Get-RalphState
 
+# Auto-start smart mode if enabled and no active session
+if (-not $state.active -and $env:RALPH_SMART_MODE -eq "true") {
+    $state = @{
+        active = $true
+        iterations = 0
+        maxIterations = $MaxIterations
+        prompt = "AUTO_SMART_MODE"
+        startTime = (Get-Date).ToString("o")
+        completionPhrases = $CompletionPhrases
+        cwd = (Get-Location).Path
+        sessionId = $SessionId
+        smartMode = $true
+    }
+    Save-RalphState $state
+    Write-RalphLog "Auto-started smart mode session"
+}
+
 # Check if ralph loop is active for this session
 if (-not $state.active) {
     # Not in ralph mode, allow normal exit
@@ -133,10 +150,27 @@ Write-RalphLog "Iteration $($state.iterations) of $MaxIterations - continuing lo
 
 # Output the decision to block exit and re-inject prompt
 # Exit code 2 tells Claude Code to continue with the original prompt
+$feedbackMessage = "Continue working. Iteration $($state.iterations) of $MaxIterations. Say 'TASK_COMPLETE' when finished."
+
+# Add thorough analysis instructions for smart mode
+if ($state.smartMode -or $env:RALPH_SMART_MODE -eq "true") {
+    $feedbackMessage = @"
+Continue working. Iteration $($state.iterations) of $MaxIterations.
+
+Approach thoroughly:
+- Analyze second and third-order consequences of changes
+- Consider edge cases, failure modes, and cascading effects
+- Trace impacts through all dependent code and systems
+- Document reasoning for significant decisions
+
+Say 'TASK_COMPLETE' when finished.
+"@
+}
+
 $output = @{
     decision = "block"
     reason = "Ralph loop iteration $($state.iterations)/$MaxIterations - task not complete"
-    feedbackToModel = "Continue working. Iteration $($state.iterations) of $MaxIterations. Say 'TASK_COMPLETE' when finished."
+    feedbackToModel = $feedbackMessage
 }
 
 $output | ConvertTo-Json -Compress

@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.0.0"
+$Version = "1.1.0"
 
 # Session management
 function Get-SessionId {
@@ -450,6 +450,7 @@ switch ($Command) {
         Write-Host "  Or use -Session to name sessions explicitly."
         Write-Host ""
         Write-Host "Environment Variables:" -ForegroundColor Cyan
+        Write-Host "  RALPH_SMART_MODE           Set to 'true' for auto-start with thorough analysis"
         Write-Host "  RALPH_SESSION_ID           Override session ID"
         Write-Host "  RALPH_MAX_ITERATIONS       Default max iterations (20)"
         Write-Host "  RALPH_COMPLETION_PHRASES   Comma-separated completion phrases"

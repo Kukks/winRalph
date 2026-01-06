@@ -172,10 +172,30 @@ $env:RALPH_COMPLETION_PHRASES = "DONE,FINISHED,COMPLETE"
 
 ## Configuration
 
+### Smart Mode (Always-On Thorough Analysis)
+
+Enable smart mode to automatically start Ralph with thorough analysis on every session:
+
+```powershell
+# Add to your PowerShell profile or environment
+$env:RALPH_SMART_MODE = "true"
+
+# Or set permanently
+[Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", "true", "User")
+```
+
+With smart mode enabled:
+- Ralph auto-starts when Claude tries to exit
+- Every iteration includes thorough analysis instructions
+- Analyzes second/third-order consequences
+- Considers edge cases and failure modes
+- No need to manually run `ralph start`
+
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `RALPH_SMART_MODE` | (disabled) | Set to `true` for auto-start with thorough analysis |
 | `RALPH_MAX_ITERATIONS` | `20` | Max iterations before auto-stop |
 | `RALPH_COMPLETION_PHRASES` | `TASK_COMPLETE,ALL_DONE,MISSION_ACCOMPLISHED` | Phrases that trigger completion |
 | `RALPH_SESSION_ID` | (auto) | Override session ID |

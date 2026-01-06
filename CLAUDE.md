@@ -92,6 +92,19 @@ When `/ralph start` is called without a prompt, it auto-generates one with:
 - Explicit session names supported via `-Session` parameter
 - State persists in JSON files in temp directory
 
+## Smart Mode (RALPH_SMART_MODE)
+
+When `RALPH_SMART_MODE=true` environment variable is set:
+- Ralph auto-starts on first Claude exit attempt (no manual `ralph start` needed)
+- Every iteration feedback includes thorough analysis instructions
+- State has `smartMode: true` flag
+- User gets always-on deep analysis without explicit setup
+
+Implementation in `ralph-loop.ps1`:
+1. Checks if `RALPH_SMART_MODE=true` and no active session
+2. Auto-creates session state with `smartMode: true`
+3. Feedback message includes analysis instructions when `smartMode` is set
+
 ## Completion Phrases
 
 Default phrases that stop the loop:
