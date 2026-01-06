@@ -15,7 +15,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "uninstall", "version", "help")]
+    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "uninstall", "version", "smart", "help")]
     [string]$Command = "help",
 
     [Parameter(Position=1)]
@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.1.0"
+$Version = "1.2.0"
 
 # Session management
 function Get-SessionId {
@@ -424,6 +424,55 @@ switch ($Command) {
         Write-Host "Restart Claude Code and terminal for changes to take effect." -ForegroundColor Yellow
     }
 
+    "smart" {
+        $currentValue = [Environment]::GetEnvironmentVariable("RALPH_SMART_MODE", "User")
+        $sessionValue = $env:RALPH_SMART_MODE
+
+        if (-not $Prompt) {
+            # Show current status
+            Show-Banner
+            Write-Host "Smart Mode Status:" -ForegroundColor Cyan
+            Write-Host ""
+
+            $permStatus = if ($currentValue -eq "true") { "ENABLED" } else { "disabled" }
+            $permColor = if ($currentValue -eq "true") { "Green" } else { "Gray" }
+            Write-Host "  Permanent (User env): " -NoNewline
+            Write-Host $permStatus -ForegroundColor $permColor
+
+            $sessStatus = if ($sessionValue -eq "true") { "ENABLED" } else { "disabled" }
+            $sessColor = if ($sessionValue -eq "true") { "Green" } else { "Gray" }
+            Write-Host "  Current session:      " -NoNewline
+            Write-Host $sessStatus -ForegroundColor $sessColor
+
+            Write-Host ""
+            Write-Host "Usage:" -ForegroundColor Cyan
+            Write-Host "  ralph smart on       Enable permanently"
+            Write-Host "  ralph smart off      Disable permanently"
+            Write-Host "  ralph smart session  Enable for current session only"
+        }
+        elseif ($Prompt -eq "on") {
+            [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", "true", "User")
+            $env:RALPH_SMART_MODE = "true"
+            Write-Host "Smart mode ENABLED permanently" -ForegroundColor Green
+            Write-Host "Ralph will auto-start with thorough analysis on every session." -ForegroundColor Gray
+        }
+        elseif ($Prompt -eq "off") {
+            [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", $null, "User")
+            $env:RALPH_SMART_MODE = $null
+            Write-Host "Smart mode DISABLED" -ForegroundColor Yellow
+            Write-Host "Use 'ralph start' to manually start loops." -ForegroundColor Gray
+        }
+        elseif ($Prompt -eq "session") {
+            $env:RALPH_SMART_MODE = "true"
+            Write-Host "Smart mode ENABLED for this session" -ForegroundColor Green
+            Write-Host "Will reset when terminal closes." -ForegroundColor Gray
+        }
+        else {
+            Write-Host "Unknown option: $Prompt" -ForegroundColor Red
+            Write-Host "Usage: ralph smart [on|off|session]"
+        }
+    }
+
     "version" {
         Write-Host "winRalph v$Version" -ForegroundColor Cyan
     }
@@ -443,6 +492,9 @@ switch ($Command) {
         Write-Host "  ralph update                      Update to latest version"
         Write-Host "  ralph uninstall                   Remove winRalph completely"
         Write-Host "  ralph version                     Show current version"
+        Write-Host "  ralph smart                       Show smart mode status"
+        Write-Host "  ralph smart on                    Enable smart mode permanently"
+        Write-Host "  ralph smart off                   Disable smart mode"
         Write-Host ""
         Write-Host "Concurrent Sessions:" -ForegroundColor Cyan
         Write-Host "  By default, each directory gets its own session."
