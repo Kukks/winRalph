@@ -256,11 +256,7 @@ iwr -useb https://raw.githubusercontent.com/Kukks/winRalph/master/install-remote
 ### Uninstall
 
 ```powershell
-# One-liner uninstall
-iwr -useb https://raw.githubusercontent.com/Kukks/winRalph/master/uninstall-remote.ps1 | iex
-
-# Or if installed from source
-.\install.ps1 -Uninstall
+ralph uninstall
 ```
 
 ## Credits

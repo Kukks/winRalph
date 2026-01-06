@@ -131,5 +131,5 @@ Write-Host "  2. Restart terminal to use 'ralph' command"
 Write-Host "  3. Try: ralph start `"Your task here`""
 Write-Host ""
 Write-Host "Update:    ralph update" -ForegroundColor Gray
-Write-Host "Uninstall: iwr -useb $BaseUrl/uninstall-remote.ps1 | iex" -ForegroundColor Gray
+Write-Host "Uninstall: ralph uninstall" -ForegroundColor Gray
 Write-Host ""

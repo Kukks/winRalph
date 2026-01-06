@@ -15,7 +15,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "help")]
+    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "uninstall", "help")]
     [string]$Command = "help",
 
     [Parameter(Position=1)]
@@ -306,6 +306,84 @@ switch ($Command) {
         Write-Host "Restart Claude Code to use the new version." -ForegroundColor Yellow
     }
 
+    "uninstall" {
+        Show-Banner
+        Write-Host "Uninstalling winRalph..." -ForegroundColor Yellow
+        Write-Host ""
+
+        $HooksDir = "$env:USERPROFILE\.claude\hooks"
+        $CommandsDir = "$env:USERPROFILE\.claude\commands"
+        $SettingsFile = "$env:USERPROFILE\.claude\settings.json"
+
+        # Remove hook files
+        Write-Host "Removing hook files..." -ForegroundColor Cyan
+        $hookFiles = @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd")
+        foreach ($file in $hookFiles) {
+            $path = "$HooksDir\$file"
+            if (Test-Path $path) {
+                Remove-Item $path -Force
+                Write-Host "  Removed $file" -ForegroundColor Green
+            }
+        }
+
+        # Remove command files
+        Write-Host "Removing command files..." -ForegroundColor Cyan
+        $cmdFiles = @("ralph.md")
+        foreach ($file in $cmdFiles) {
+            $path = "$CommandsDir\$file"
+            if (Test-Path $path) {
+                Remove-Item $path -Force
+                Write-Host "  Removed $file" -ForegroundColor Green
+            }
+        }
+
+        # Remove from settings.json
+        Write-Host "Removing hook configuration..." -ForegroundColor Cyan
+        if (Test-Path $SettingsFile) {
+            $settings = Get-Content $SettingsFile -Raw | ConvertFrom-Json
+            if ($settings.hooks -and $settings.hooks.Stop) {
+                $newStopHooks = @()
+                foreach ($stopHook in $settings.hooks.Stop) {
+                    if ($stopHook.hooks) {
+                        $newHooks = @()
+                        foreach ($h in $stopHook.hooks) {
+                            if ($h.command -notmatch "ralph-loop") {
+                                $newHooks += $h
+                            }
+                        }
+                        if ($newHooks.Count -gt 0) {
+                            $stopHook.hooks = $newHooks
+                            $newStopHooks += $stopHook
+                        }
+                    }
+                }
+                $settings.hooks.Stop = $newStopHooks
+                $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
+                Write-Host "  Hook removed from settings.json" -ForegroundColor Green
+            }
+        }
+
+        # Remove from PATH
+        Write-Host "Removing from PATH..." -ForegroundColor Cyan
+        $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+        if ($currentPath -like "*$HooksDir*") {
+            $newPath = ($currentPath -split ";" | Where-Object { $_ -ne $HooksDir }) -join ";"
+            [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+            Write-Host "  Removed from PATH" -ForegroundColor Green
+        }
+
+        # Clear session files
+        Write-Host "Clearing session files..." -ForegroundColor Cyan
+        if (Test-Path $StateDir) {
+            Remove-Item $StateDir -Recurse -Force
+            Write-Host "  Cleared session data" -ForegroundColor Green
+        }
+
+        Write-Host ""
+        Write-Host "Uninstall complete!" -ForegroundColor Green
+        Write-Host "Restart Claude Code and terminal for changes to take effect." -ForegroundColor Yellow
+    }
+
     "help" {
         Show-Banner
 
@@ -319,6 +397,7 @@ switch ($Command) {
         Write-Host "  ralph log                         View the log"
         Write-Host "  ralph clear                       Clear state and logs"
         Write-Host "  ralph update                      Update to latest version"
+        Write-Host "  ralph uninstall                   Remove winRalph completely"
         Write-Host ""
         Write-Host "Concurrent Sessions:" -ForegroundColor Cyan
         Write-Host "  By default, each directory gets its own session."
