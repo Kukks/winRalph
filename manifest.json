@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "files": {
+    "hooks": [
+      "ralph-loop.ps1",
+      "ralph.ps1",
+      "ralph.cmd"
+    ],
+    "commands": [
+      "ralph.md"
+    ]
+  }
+}

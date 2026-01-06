@@ -273,17 +273,25 @@ switch ($Command) {
         $HooksDir = "$env:USERPROFILE\.claude\hooks"
         $CommandsDir = "$env:USERPROFILE\.claude\commands"
 
-        # Check latest version
+        # Fetch manifest for version and file list
         Write-Host "Checking for updates..." -ForegroundColor Cyan
         try {
-            $latestScript = Invoke-WebRequest -Uri "$BaseUrl/hooks/ralph.ps1" -UseBasicParsing
-            if ($latestScript.Content -match '\$Version\s*=\s*"([^"]+)"') {
-                $latestVersion = $matches[1]
-            } else {
+            $manifestData = Invoke-WebRequest -Uri "$BaseUrl/manifest.json" -UseBasicParsing
+            $manifest = $manifestData.Content | ConvertFrom-Json
+            $latestVersion = $manifest.version
+        } catch {
+            Write-Host "  Failed to fetch manifest, falling back to version check" -ForegroundColor Yellow
+            try {
+                $latestScript = Invoke-WebRequest -Uri "$BaseUrl/hooks/ralph.ps1" -UseBasicParsing
+                if ($latestScript.Content -match '\$Version\s*=\s*"([^"]+)"') {
+                    $latestVersion = $matches[1]
+                } else {
+                    $latestVersion = "unknown"
+                }
+            } catch {
                 $latestVersion = "unknown"
             }
-        } catch {
-            $latestVersion = "unknown"
+            $manifest = $null
         }
 
         Write-Host "  Current version: $Version" -ForegroundColor White
@@ -298,9 +306,17 @@ switch ($Command) {
         Write-Host "Updating winRalph..." -ForegroundColor Cyan
         Write-Host ""
 
+        # Get file lists from manifest or use defaults
+        if ($manifest -and $manifest.files) {
+            $hookFiles = $manifest.files.hooks
+            $cmdFiles = $manifest.files.commands
+        } else {
+            $hookFiles = @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd")
+            $cmdFiles = @("ralph.md")
+        }
+
         # Update hook files
         Write-Host "Downloading hook files..." -ForegroundColor Cyan
-        $hookFiles = @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd")
         foreach ($file in $hookFiles) {
             $url = "$BaseUrl/hooks/$file"
             $dst = "$HooksDir\$file"
@@ -314,7 +330,6 @@ switch ($Command) {
 
         # Update command files
         Write-Host "Downloading command files..." -ForegroundColor Cyan
-        $cmdFiles = @("ralph.md")
         foreach ($file in $cmdFiles) {
             $url = "$BaseUrl/commands/$file"
             $dst = "$CommandsDir\$file"

@@ -15,6 +15,14 @@ $HooksDir = "$ClaudeDir\hooks"
 $CommandsDir = "$ClaudeDir\commands"
 $SettingsFile = "$ClaudeDir\settings.json"
 
+# Fetch manifest
+try {
+    $manifestData = Invoke-WebRequest -Uri "$BaseUrl/manifest.json" -UseBasicParsing
+    $manifest = $manifestData.Content | ConvertFrom-Json
+} catch {
+    $manifest = $null
+}
+
 function Show-Banner {
     Write-Host ""
     Write-Host "  ____       _       _     " -ForegroundColor Yellow
@@ -38,7 +46,7 @@ New-Item -ItemType Directory -Force -Path $CommandsDir | Out-Null
 
 # Download and install hook files
 Write-Host "Downloading hook files..." -ForegroundColor Cyan
-$hookFiles = @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd")
+$hookFiles = if ($manifest -and $manifest.files.hooks) { $manifest.files.hooks } else { @("ralph-loop.ps1", "ralph.ps1", "ralph.cmd") }
 foreach ($file in $hookFiles) {
     $url = "$BaseUrl/hooks/$file"
     $dst = "$HooksDir\$file"
@@ -53,7 +61,7 @@ foreach ($file in $hookFiles) {
 
 # Download command files
 Write-Host "Downloading command files..." -ForegroundColor Cyan
-$cmdFiles = @("ralph.md")
+$cmdFiles = if ($manifest -and $manifest.files.commands) { $manifest.files.commands } else { @("ralph.md") }
 foreach ($file in $cmdFiles) {
     $url = "$BaseUrl/commands/$file"
     $dst = "$CommandsDir\$file"
