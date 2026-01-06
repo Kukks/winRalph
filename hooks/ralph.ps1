@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.2.1"
+$Version = "1.2.2"
 
 # Session management
 function Get-SessionId {
@@ -427,6 +427,8 @@ switch ($Command) {
     "smart" {
         $currentValue = [Environment]::GetEnvironmentVariable("RALPH_SMART_MODE", "User")
         $sessionValue = $env:RALPH_SMART_MODE
+        $state = Get-RalphState
+        $stateSmartMode = if ($state -and $state.smartMode) { $true } else { $false }
 
         if (-not $Prompt) {
             # Show current status
@@ -439,31 +441,53 @@ switch ($Command) {
             Write-Host "  Permanent (User env): " -NoNewline
             Write-Host $permStatus -ForegroundColor $permColor
 
-            $sessStatus = if ($sessionValue -eq "true") { "ENABLED" } else { "disabled" }
-            $sessColor = if ($sessionValue -eq "true") { "Green" } else { "Gray" }
-            Write-Host "  Current session:      " -NoNewline
-            Write-Host $sessStatus -ForegroundColor $sessColor
+            # Effective status considers both env var and state file
+            $effectiveActive = ($sessionValue -eq "true") -or $stateSmartMode
+            $effStatus = if ($effectiveActive) { "ACTIVE" } else { "inactive" }
+            $effColor = if ($effectiveActive) { "Green" } else { "Gray" }
+            Write-Host "  This session:         " -NoNewline
+            Write-Host $effStatus -ForegroundColor $effColor
 
             Write-Host ""
             Write-Host "Usage:" -ForegroundColor Cyan
-            Write-Host "  ralph smart on       Enable permanently"
-            Write-Host "  ralph smart off      Disable permanently"
+            Write-Host "  ralph smart on       Enable permanently + activate now"
+            Write-Host "  ralph smart off      Disable permanently + deactivate now"
             Write-Host "  ralph smart session  Enable for current session only"
         }
         elseif ($Prompt -eq "on") {
             [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", "true", "User")
             $env:RALPH_SMART_MODE = "true"
+            # Also update current session state file so it takes effect immediately
+            $state = Get-RalphState
+            if (-not $state) {
+                $state = @{ active = $false; iterations = 0; smartMode = $true }
+            }
+            $state.smartMode = $true
+            $state | ConvertTo-Json | Set-Content $StateFile -Force
             Write-Host "Smart mode ENABLED permanently" -ForegroundColor Green
-            Write-Host "Ralph will auto-start with thorough analysis on every session." -ForegroundColor Gray
+            Write-Host "Also activated for current session." -ForegroundColor Gray
         }
         elseif ($Prompt -eq "off") {
             [Environment]::SetEnvironmentVariable("RALPH_SMART_MODE", $null, "User")
             $env:RALPH_SMART_MODE = $null
+            # Also update current session state file
+            $state = Get-RalphState
+            if ($state) {
+                $state.smartMode = $false
+                $state | ConvertTo-Json | Set-Content $StateFile -Force
+            }
             Write-Host "Smart mode DISABLED" -ForegroundColor Yellow
             Write-Host "Use 'ralph start' to manually start loops." -ForegroundColor Gray
         }
         elseif ($Prompt -eq "session") {
             $env:RALPH_SMART_MODE = "true"
+            # Update session state file so it takes effect immediately
+            $state = Get-RalphState
+            if (-not $state) {
+                $state = @{ active = $false; iterations = 0; smartMode = $true }
+            }
+            $state.smartMode = $true
+            $state | ConvertTo-Json | Set-Content $StateFile -Force
             Write-Host "Smart mode ENABLED for this session" -ForegroundColor Green
             Write-Host "Will reset when terminal closes." -ForegroundColor Gray
         }
