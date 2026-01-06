@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.3.1"
+$Version = "1.4.1"
 
 # Session management
 function Get-SessionId {
@@ -223,11 +223,33 @@ switch ($Command) {
     "list" {
         Show-Banner
 
+        # Show smart mode status at top
+        $smartFlagFile = "$StateDir\smart-mode-active"
+        $smartActive = (Test-Path $smartFlagFile) -or ($env:RALPH_SMART_MODE -eq "true")
+        $smartPermanent = [Environment]::GetEnvironmentVariable("RALPH_SMART_MODE", "User") -eq "true"
+
+        Write-Host "Smart Mode: " -NoNewline
+        if ($smartActive) {
+            Write-Host "ACTIVE" -ForegroundColor Green -NoNewline
+            if ($smartPermanent) {
+                Write-Host " (permanent)" -ForegroundColor Gray
+            } else {
+                Write-Host " (session only)" -ForegroundColor Gray
+            }
+        } else {
+            Write-Host "inactive" -ForegroundColor Gray
+        }
+        Write-Host ""
+
         $sessions = Get-AllSessions
         if ($sessions.Count -eq 0) {
             Write-Host "No ralph sessions found" -ForegroundColor Gray
+            Write-Host ""
+            if ($smartActive) {
+                Write-Host "Smart mode is active - Ralph will auto-loop when Claude runs." -ForegroundColor Yellow
+            }
         } else {
-            Write-Host "All Ralph Sessions:" -ForegroundColor Cyan
+            Write-Host "Sessions:" -ForegroundColor Cyan
             Write-Host ""
 
             $sessions | ForEach-Object {
@@ -241,6 +263,13 @@ switch ($Command) {
                 Write-Host "  Prompt: $($_.Prompt)"
                 if ($_.Directory) {
                     Write-Host "  Directory: $($_.Directory)" -ForegroundColor Gray
+                }
+                if ($_.StartTime) {
+                    try {
+                        $start = [DateTime]::Parse($_.StartTime)
+                        $duration = (Get-Date) - $start
+                        Write-Host "  Duration: $($duration.ToString('hh\:mm\:ss'))" -ForegroundColor Gray
+                    } catch {}
                 }
                 Write-Host ""
             }
@@ -450,6 +479,12 @@ switch ($Command) {
             Write-Host $effStatus -ForegroundColor $effColor
 
             Write-Host ""
+            Write-Host "Smart mode includes:" -ForegroundColor Yellow
+            Write-Host "  - Thorough analysis (second-order consequences, edge cases)"
+            Write-Host "  - Todo tracking (integrates with Claude's native TodoWrite)"
+            Write-Host "  - Retrospective checks after each completed item"
+            Write-Host "  - Auto-discovery of new tasks"
+            Write-Host ""
             Write-Host "Usage:" -ForegroundColor Cyan
             Write-Host "  ralph smart on       Enable permanently + activate now"
             Write-Host "  ralph smart off      Disable permanently + deactivate now"
@@ -501,7 +536,7 @@ switch ($Command) {
         Write-Host "  ralph uninstall                   Remove winRalph completely"
         Write-Host "  ralph version                     Show current version"
         Write-Host "  ralph smart                       Show smart mode status"
-        Write-Host "  ralph smart on                    Enable smart mode permanently"
+        Write-Host "  ralph smart on                    Enable smart mode (thorough + todo tracking)"
         Write-Host "  ralph smart off                   Disable smart mode"
         Write-Host ""
         Write-Host "Concurrent Sessions:" -ForegroundColor Cyan

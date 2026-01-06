@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: Control the Ralph autonomous loop - start, stop, status, list, log, smart
+description: Control the Ralph autonomous loop - start, stop, status, list, log, smart (user)
 allowed-tools: Bash
 ---
 
@@ -22,8 +22,8 @@ You are handling a `/ralph` command. Parse the arguments and execute the appropr
    - `/ralph start "explicit prompt"` → Start with the given prompt
    - `/ralph clear` → Clear session state
    - `/ralph smart` → Show smart mode status
-   - `/ralph smart on` → Enable smart mode for this session
-   - `/ralph smart off` → Disable smart mode for this session
+   - `/ralph smart on` → Enable smart mode (thorough analysis + todo tracking)
+   - `/ralph smart off` → Disable smart mode
 
 2. **For `/ralph start` WITHOUT a prompt:**
    - Look at the conversation context above this command
@@ -72,27 +72,32 @@ Say TASK_COMPLETE when finished.
 
 Be specific about what needs to be done and always include the thorough analysis requirements.
 
-## Smart Mode (Session Toggle)
+## Smart Mode (Comprehensive Autonomous Mode)
 
-Smart mode uses a flag file (`smart-mode-active`) for immediate activation.
+Smart mode provides comprehensive autonomous behavior with:
+- **Thorough analysis**: Second-order consequences, edge cases, failure modes
+- **Todo tracking**: Integrated with Claude Code's native TodoWrite
+- **Retrospective checks**: Verify completed work, check for regressions
+- **Auto-discovery**: Identify and add new tasks while working
 
 **For `/ralph smart on`:**
 1. Run `ralph smart session` to create the flag file
-2. Tell user: "Smart mode enabled for this session. I'll approach all tasks with thorough analysis."
+2. Tell user: "Smart mode enabled. I'll work thoroughly with todo tracking, retrospectives, and discovery."
 
 **For `/ralph smart off`:**
 1. Run `ralph smart off` to remove the flag file
-2. Tell user: "Smart mode disabled for this session."
+2. Tell user: "Smart mode disabled."
 
 **For `/ralph smart`** (no argument):
 1. Run `ralph smart` to check status
 2. Report whether smart mode is enabled or disabled
 
-When smart mode is ON for this session, you (Claude) should:
-- Always analyze second and third-order consequences
-- Consider edge cases and failure modes
-- Trace impacts through dependent systems
-- Document reasoning for decisions
+When smart mode is ON, you (Claude) should:
+- Analyze second and third-order consequences of changes
+- Consider edge cases, failure modes, and cascading effects
+- Use TodoWrite to track progress on complex tasks
+- Verify completed work functions correctly (retrospective)
+- Identify and add new tasks discovered during work (discovery)
 - Be thorough rather than quick
 
 ## Example Executions
@@ -127,6 +132,5 @@ For `/ralph smart off`:
 ```bash
 powershell -ExecutionPolicy Bypass -File "$HOME/.claude/hooks/ralph.ps1" smart off
 ```
-Note: This disables permanently. For session-only disable, just tell user smart mode is off and you'll work normally.
 
 Now execute the ralph command based on the arguments provided.

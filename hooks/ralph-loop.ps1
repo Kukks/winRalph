@@ -133,7 +133,17 @@ if (Test-CompletionPhrase $transcript) {
     $state.active = $false
     Save-RalphState $state
 
-    Write-Output "Ralph loop completed successfully after $($state.iterations) iterations."
+    # Calculate duration if start time available
+    $durationStr = ""
+    if ($state.startTime) {
+        try {
+            $start = [DateTime]::Parse($state.startTime)
+            $duration = (Get-Date) - $start
+            $durationStr = " in $($duration.ToString('hh\:mm\:ss'))"
+        } catch {}
+    }
+
+    Write-Output "Ralph: Task completed after $($state.iterations) iterations$durationStr"
     exit 0
 }
 
@@ -143,7 +153,7 @@ if ($state.iterations -ge $MaxIterations) {
     $state.active = $false
     Save-RalphState $state
 
-    Write-Output "Ralph loop stopped: max iterations ($MaxIterations) reached."
+    Write-Output "Ralph: Max iterations ($MaxIterations) reached - stopping. Use 'ralph start' to continue."
     exit 0
 }
 
@@ -156,25 +166,50 @@ Write-RalphLog "Iteration $($state.iterations) of $MaxIterations - continuing lo
 # Exit code 2 tells Claude Code to continue with the original prompt
 $feedbackMessage = "Continue working. Iteration $($state.iterations) of $MaxIterations. Say 'TASK_COMPLETE' when finished."
 
-# Add thorough analysis instructions for smart mode
+# Smart mode provides comprehensive autonomous behavior:
+# - Thorough analysis (second-order consequences, edge cases)
+# - Todo tracking (integrated with Claude Code's native TodoWrite)
+# - Retrospective checks after each completed item
+# - Auto-discovery of new tasks
 if ($smartModeActive) {
     $feedbackMessage = @"
 Continue working. Iteration $($state.iterations) of $MaxIterations.
 
-Approach thoroughly:
+THOROUGH ANALYSIS:
 - Analyze second and third-order consequences of changes
 - Consider edge cases, failure modes, and cascading effects
 - Trace impacts through all dependent code and systems
 - Document reasoning for significant decisions
 
+TODO TRACKING (if using todos):
+- Use TodoWrite to track your progress
+- Work through items one at a time (one in_progress at a time)
+- Mark completed when done
+
+RETROSPECTIVE (after completing each item):
+- Verify the completed work functions correctly
+- Check for regressions in previous work
+- Ensure everything integrates properly
+- If issues found, add fix tasks
+
+DISCOVERY (while working):
+- Identify new tasks, edge cases, or improvements
+- Add discovered items to your todo list
+- Consider dependencies and ordering
+
 Say 'TASK_COMPLETE' when finished.
 "@
 }
+
+# Build user-visible status message
+$modeIndicator = if ($smartModeActive) { "[Smart Mode]" } else { "[Loop]" }
+$userMessage = "Ralph $modeIndicator Iteration $($state.iterations)/$MaxIterations - continuing..."
 
 $output = @{
     decision = "block"
     reason = "Ralph loop iteration $($state.iterations)/$MaxIterations - task not complete"
     feedbackToModel = $feedbackMessage
+    systemMessage = $userMessage
 }
 
 $output | ConvertTo-Json -Compress

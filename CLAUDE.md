@@ -102,10 +102,16 @@ When `/ralph start` is called without a prompt, it auto-generates one with:
 
 ## Smart Mode
 
-Smart mode provides always-on thorough analysis. Can be enabled via:
+Smart mode provides comprehensive autonomous behavior with thorough analysis and integrated todo tracking. Can be enabled via:
 - Environment variable: `RALPH_SMART_MODE=true`
 - Flag file: `$env:TEMP\ralph-sessions\smart-mode-active`
 - Command: `ralph smart on` / `ralph smart session`
+
+### What Smart Mode Includes
+- **Thorough analysis**: Second-order consequences, edge cases, failure modes
+- **Todo tracking**: Integrated with Claude Code's native TodoWrite
+- **Retrospective checks**: Verify completed work, check for regressions
+- **Auto-discovery**: Identify and add new tasks while working
 
 ### Commands
 - `ralph smart` - Show current status (permanent + session)
@@ -119,12 +125,24 @@ Smart mode uses a **flag file** (`smart-mode-active`) instead of polluting sessi
 In `ralph-loop.ps1`:
 1. Checks if flag file exists OR `RALPH_SMART_MODE=true` env var
 2. If smart mode active and no loop running, auto-starts a loop
-3. Feedback message includes thorough analysis instructions when smart mode is active
+3. Feedback message includes comprehensive instructions:
+   - Thorough analysis (consequences, edge cases)
+   - Todo tracking (use TodoWrite, one item at a time)
+   - Retrospective (verify work, check regressions)
+   - Discovery (identify and add new tasks)
 
 ### Why Flag File?
 - Environment variables set in child processes don't propagate to parent terminal
 - Flag file provides immediate activation without terminal restart
 - Clean separation: session states for loops, flag file for smart mode setting
+
+### Integration with Claude Code's Native TodoWrite
+Smart mode works seamlessly with Claude Code's native todo system:
+1. Create your plan using Claude's TodoWrite tool (or let Claude create it)
+2. Enable smart mode: `ralph smart on`
+3. Ralph keeps Claude working, providing todo-aware feedback each iteration
+4. Claude uses TodoWrite naturally, receiving retrospective/discovery prompts
+5. Claude says TASK_COMPLETE when all work is done
 
 ## Completion Phrases
 
