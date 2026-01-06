@@ -15,7 +15,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "uninstall", "help")]
+    [ValidateSet("start", "stop", "status", "log", "clear", "list", "update", "uninstall", "version", "help")]
     [string]$Command = "help",
 
     [Parameter(Position=1)]
@@ -30,6 +30,8 @@ param(
     [Parameter()]
     [string]$Session  # Optional explicit session name
 )
+
+$Version = "1.0.0"
 
 # Session management
 function Get-SessionId {
@@ -266,12 +268,35 @@ switch ($Command) {
 
     "update" {
         Show-Banner
-        Write-Host "Updating winRalph..." -ForegroundColor Cyan
-        Write-Host ""
 
         $BaseUrl = "https://raw.githubusercontent.com/Kukks/winRalph/master"
         $HooksDir = "$env:USERPROFILE\.claude\hooks"
         $CommandsDir = "$env:USERPROFILE\.claude\commands"
+
+        # Check latest version
+        Write-Host "Checking for updates..." -ForegroundColor Cyan
+        try {
+            $latestScript = Invoke-WebRequest -Uri "$BaseUrl/hooks/ralph.ps1" -UseBasicParsing
+            if ($latestScript.Content -match '\$Version\s*=\s*"([^"]+)"') {
+                $latestVersion = $matches[1]
+            } else {
+                $latestVersion = "unknown"
+            }
+        } catch {
+            $latestVersion = "unknown"
+        }
+
+        Write-Host "  Current version: $Version" -ForegroundColor White
+        Write-Host "  Latest version:  $latestVersion" -ForegroundColor White
+        Write-Host ""
+
+        if ($Version -eq $latestVersion) {
+            Write-Host "Already up to date!" -ForegroundColor Green
+            return
+        }
+
+        Write-Host "Updating winRalph..." -ForegroundColor Cyan
+        Write-Host ""
 
         # Update hook files
         Write-Host "Downloading hook files..." -ForegroundColor Cyan
@@ -302,7 +327,7 @@ switch ($Command) {
         }
 
         Write-Host ""
-        Write-Host "Update complete!" -ForegroundColor Green
+        Write-Host "Update complete! Now running v$latestVersion" -ForegroundColor Green
         Write-Host "Restart Claude Code to use the new version." -ForegroundColor Yellow
     }
 
@@ -384,6 +409,10 @@ switch ($Command) {
         Write-Host "Restart Claude Code and terminal for changes to take effect." -ForegroundColor Yellow
     }
 
+    "version" {
+        Write-Host "winRalph v$Version" -ForegroundColor Cyan
+    }
+
     "help" {
         Show-Banner
 
@@ -398,6 +427,7 @@ switch ($Command) {
         Write-Host "  ralph clear                       Clear state and logs"
         Write-Host "  ralph update                      Update to latest version"
         Write-Host "  ralph uninstall                   Remove winRalph completely"
+        Write-Host "  ralph version                     Show current version"
         Write-Host ""
         Write-Host "Concurrent Sessions:" -ForegroundColor Cyan
         Write-Host "  By default, each directory gets its own session."
