@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.2.2"
+$Version = "1.2.3"
 
 # Session management
 function Get-SessionId {
@@ -79,14 +79,19 @@ function Get-AllSessions {
             $sid = $_.Name -replace "ralph-state-", "" -replace ".json", ""
             try {
                 $state = Get-Content $_.FullName -Raw | ConvertFrom-Json
+                # Skip smart-mode-only sessions that never had an active loop
+                if (-not $state.active -and -not $state.prompt -and $state.smartMode) {
+                    return  # Skip this one
+                }
                 $sessions += [PSCustomObject]@{
                     SessionId = $sid
                     Active = $state.active
                     Iterations = $state.iterations
                     MaxIterations = $state.maxIterations
-                    Prompt = if ($state.prompt.Length -gt 40) { $state.prompt.Substring(0, 40) + "..." } else { $state.prompt }
+                    Prompt = if ($state.prompt -and $state.prompt.Length -gt 40) { $state.prompt.Substring(0, 40) + "..." } else { $state.prompt }
                     Directory = $state.cwd
                     StartTime = $state.startTime
+                    SmartMode = $state.smartMode
                 }
             } catch {}
         }
@@ -459,10 +464,20 @@ switch ($Command) {
             $env:RALPH_SMART_MODE = "true"
             # Also update current session state file so it takes effect immediately
             $state = Get-RalphState
-            if (-not $state) {
-                $state = @{ active = $false; iterations = 0; smartMode = $true }
+            if ($state) {
+                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $true -Force
+            } else {
+                $state = @{
+                    active = $false
+                    iterations = 0
+                    maxIterations = $MaxIterations
+                    prompt = ""
+                    startTime = $null
+                    cwd = (Get-Location).Path
+                    sessionId = $SessionId
+                    smartMode = $true
+                }
             }
-            $state.smartMode = $true
             $state | ConvertTo-Json | Set-Content $StateFile -Force
             Write-Host "Smart mode ENABLED permanently" -ForegroundColor Green
             Write-Host "Also activated for current session." -ForegroundColor Gray
@@ -473,7 +488,7 @@ switch ($Command) {
             # Also update current session state file
             $state = Get-RalphState
             if ($state) {
-                $state.smartMode = $false
+                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $false -Force
                 $state | ConvertTo-Json | Set-Content $StateFile -Force
             }
             Write-Host "Smart mode DISABLED" -ForegroundColor Yellow
@@ -483,10 +498,20 @@ switch ($Command) {
             $env:RALPH_SMART_MODE = "true"
             # Update session state file so it takes effect immediately
             $state = Get-RalphState
-            if (-not $state) {
-                $state = @{ active = $false; iterations = 0; smartMode = $true }
+            if ($state) {
+                $state | Add-Member -NotePropertyName "smartMode" -NotePropertyValue $true -Force
+            } else {
+                $state = @{
+                    active = $false
+                    iterations = 0
+                    maxIterations = $MaxIterations
+                    prompt = ""
+                    startTime = $null
+                    cwd = (Get-Location).Path
+                    sessionId = $SessionId
+                    smartMode = $true
+                }
             }
-            $state.smartMode = $true
             $state | ConvertTo-Json | Set-Content $StateFile -Force
             Write-Host "Smart mode ENABLED for this session" -ForegroundColor Green
             Write-Host "Will reset when terminal closes." -ForegroundColor Gray
