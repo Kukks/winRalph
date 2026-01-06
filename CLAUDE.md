@@ -56,9 +56,11 @@ Slash command that:
 
 ## Versioning
 
+**IMPORTANT: ALWAYS bump version on ANY change, no matter how small!**
+
 When releasing updates:
 
-1. **Update version in TWO places**:
+1. **Update version in TWO places** (EVERY commit):
    - `manifest.json` → `version` field
    - `hooks/ralph.ps1` → `$Version` variable
 
@@ -67,6 +69,11 @@ When releasing updates:
    - Add filename to `manifest.json` under `files.hooks` or `files.commands`
 
 3. **Version format**: Semantic versioning (MAJOR.MINOR.PATCH)
+   - PATCH: Bug fixes, doc updates, small changes
+   - MINOR: New features, new commands
+   - MAJOR: Breaking changes
+
+4. **Never forget**: Even slash command updates need version bumps!
 
 ## Update Flow
 

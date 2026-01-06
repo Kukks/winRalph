@@ -31,7 +31,7 @@ param(
     [string]$Session  # Optional explicit session name
 )
 
-$Version = "1.2.0"
+$Version = "1.2.1"
 
 # Session management
 function Get-SessionId {
