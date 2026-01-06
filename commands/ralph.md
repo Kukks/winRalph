@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: Control the Ralph autonomous loop - start, stop, status, list, log
+description: Control the Ralph autonomous loop - start, stop, status, list, log, smart
 allowed-tools: Bash
 ---
 
@@ -21,6 +21,9 @@ You are handling a `/ralph` command. Parse the arguments and execute the appropr
    - `/ralph start` → Start a loop (see below for prompt handling)
    - `/ralph start "explicit prompt"` → Start with the given prompt
    - `/ralph clear` → Clear session state
+   - `/ralph smart` → Show smart mode status
+   - `/ralph smart on` → Enable smart mode for this session
+   - `/ralph smart off` → Disable smart mode for this session
 
 2. **For `/ralph start` WITHOUT a prompt:**
    - Look at the conversation context above this command
@@ -69,6 +72,31 @@ Say TASK_COMPLETE when finished.
 
 Be specific about what needs to be done and always include the thorough analysis requirements.
 
+## Smart Mode (Session Toggle)
+
+For `/ralph smart on` or `/ralph smart off` within Claude Code, this toggles smart mode for the **current session only** by modifying the session state file.
+
+**For `/ralph smart on`:**
+1. Get or create the session state file
+2. Set `smartMode: true` in the state
+3. Tell user: "Smart mode enabled for this session. I'll approach all tasks with thorough analysis."
+
+**For `/ralph smart off`:**
+1. Get the session state file
+2. Set `smartMode: false` in the state
+3. Tell user: "Smart mode disabled for this session."
+
+**For `/ralph smart`** (no argument):
+1. Check current session state
+2. Report whether smart mode is enabled or disabled
+
+When smart mode is ON for this session, you (Claude) should:
+- Always analyze second and third-order consequences
+- Consider edge cases and failure modes
+- Trace impacts through dependent systems
+- Document reasoning for decisions
+- Be thorough rather than quick
+
 ## Example Executions
 
 For `/ralph status`:
@@ -85,5 +113,22 @@ For `/ralph start` (no prompt - generate from context):
 1. Analyze conversation
 2. Generate prompt
 3. Run: `powershell -ExecutionPolicy Bypass -File "$HOME/.claude/hooks/ralph.ps1" start "<generated prompt>"`
+
+For `/ralph smart`:
+```bash
+powershell -ExecutionPolicy Bypass -File "$HOME/.claude/hooks/ralph.ps1" smart
+```
+
+For `/ralph smart on` (session only):
+```bash
+powershell -ExecutionPolicy Bypass -File "$HOME/.claude/hooks/ralph.ps1" smart session
+```
+Then confirm to user that smart mode is enabled for this session.
+
+For `/ralph smart off`:
+```bash
+powershell -ExecutionPolicy Bypass -File "$HOME/.claude/hooks/ralph.ps1" smart off
+```
+Note: This disables permanently. For session-only disable, just tell user smart mode is off and you'll work normally.
 
 Now execute the ralph command based on the arguments provided.
